@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PetSex {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum MedicalRecordType {
+  VACCINATION
+  MEDICATION
+  ALLERGY
+  CONDITION
+  CHECKUP
+  SURGERY
+  LAB_RESULT
+  NOTE
+}
+
+enum ReminderStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum RepeatType {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  avatarUrl    String?
+  timezone     String    @default("UTC")
+  pets         Pet[]
+  sessions     Session[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Session {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Pet {
+  id             String          @id @default(cuid())
+  ownerId        String
+  owner          User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name           String
+  species        String
+  breed          String?
+  sex            PetSex          @default(UNKNOWN)
+  dateOfBirth    DateTime?
+  color          String?
+  photoUrl       String?
+  microchipId    String?
+  notes          String?
+  weights        WeightEntry[]
+  medicalRecords MedicalRecord[]
+  reminders      Reminder[]
+  appointments   Appointment[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([ownerId])
+}
+
+model WeightEntry {
+  id         String   @id @default(cuid())
+  petId      String
+  pet        Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  weightKg   Decimal  @db.Decimal(7, 2)
+  measuredAt DateTime
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@index([petId, measuredAt])
+}
+
+model MedicalRecord {
+  id         String            @id @default(cuid())
+  petId      String
+  pet        Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
+  type       MedicalRecordType
+  title      String
+  details    String?
+  provider   String?
+  occurredAt DateTime
+  nextDueAt  DateTime?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@index([petId, occurredAt])
+  @@index([nextDueAt])
+}
+
+model Reminder {
+  id          String         @id @default(cuid())
+  petId       String
+  pet         Pet            @relation(fields: [petId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  scheduledAt DateTime
+  repeatType  RepeatType     @default(NONE)
+  status      ReminderStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([petId, scheduledAt])
+  @@index([status, scheduledAt])
+}
+
+model Appointment {
+  id          String            @id @default(cuid())
+  petId       String
+  pet         Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
+  clinicName  String?
+  vetName     String?
+  address     String?
+  reason      String
+  scheduledAt DateTime
+  status      AppointmentStatus @default(SCHEDULED)
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([petId, scheduledAt])
+  @@index([status, scheduledAt])
+}
