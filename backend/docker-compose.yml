@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pethelper
+      POSTGRES_PASSWORD: pethelper
+      POSTGRES_DB: pethelper
+    ports:
+      - "5433:5432"
+    volumes:
+      - pethelper_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pethelper -d pethelper"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pethelper_pg:
